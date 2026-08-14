@@ -1,0 +1,5 @@
+# Local Kubernetes credentials
+k8s/base/secret.yaml
+
+# Kustomize-generated or local override files
+k8s/overlays/**/kustomization.local.yaml

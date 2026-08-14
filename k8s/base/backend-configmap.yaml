@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dcjewelry-backend-config
+  namespace: dcjewelry
+data:
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_URL: https://dcjewelry.example.com
+  LOG_CHANNEL: stderr
+  LOG_LEVEL: warning
+  DB_CONNECTION: mysql
+  DB_PORT: "3306"
+  CACHE_STORE: file
+  SESSION_DRIVER: file
+  QUEUE_CONNECTION: sync

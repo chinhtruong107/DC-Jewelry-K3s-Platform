@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dcjewelry-migrate
+  namespace: dcjewelry
+  labels:
+    app.kubernetes.io/name: dcjewelry-migrate
+    app.kubernetes.io/part-of: dcjewelry
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dcjewelry-migrate
+    spec:
+      restartPolicy: OnFailure
+      nodeSelector:
+        dcjewelry.io/workload: private
+      containers:
+        - name: migrate
+          image: ghcr.io/your-github-user/dcjewelry-backend:latest
+          imagePullPolicy: IfNotPresent
+          command: ["php", "artisan", "migrate", "--force"]
+          envFrom:
+            - configMapRef:
+                name: dcjewelry-backend-config
+            - secretRef:
+                name: dcjewelry-backend-secrets

@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dcjewelry-frontend
+  namespace: dcjewelry
+  labels:
+    app.kubernetes.io/name: dcjewelry-frontend
+    app.kubernetes.io/part-of: dcjewelry
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dcjewelry-frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dcjewelry-frontend
+        app.kubernetes.io/part-of: dcjewelry
+    spec:
+      nodeSelector:
+        dcjewelry.io/workload: private
+      containers:
+        - name: frontend
+          image: ghcr.io/your-github-user/dcjewelry-frontend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: dcjewelry-frontend-config
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

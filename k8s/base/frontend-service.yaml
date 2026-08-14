@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dcjewelry-frontend
+  namespace: dcjewelry
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: dcjewelry-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
