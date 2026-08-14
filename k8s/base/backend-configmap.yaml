@@ -6,7 +6,6 @@ metadata:
 data:
   APP_ENV: production
   APP_DEBUG: "false"
-  APP_URL: https://dcjewelry.example.com
   LOG_CHANNEL: stderr
   LOG_LEVEL: warning
   DB_CONNECTION: mysql

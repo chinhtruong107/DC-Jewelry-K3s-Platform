@@ -3,6 +3,5 @@ kind: Ingress
 metadata:
   name: dcjewelry
   namespace: dcjewelry
-spec:
-  rules:
-    - host: dcjewelry.example.com
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web

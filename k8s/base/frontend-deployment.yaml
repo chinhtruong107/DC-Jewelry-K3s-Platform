@@ -22,11 +22,11 @@ spec:
         dcjewelry.io/workload: private
       containers:
         - name: frontend
-          image: ghcr.io/your-github-user/dcjewelry-frontend:latest
+          image: ct8395459/dc-jewelry-frontend:v1
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
-              containerPort: 3000
+              containerPort: 3002
           envFrom:
             - configMapRef:
                 name: dcjewelry-frontend-config

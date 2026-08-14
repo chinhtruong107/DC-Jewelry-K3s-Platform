@@ -19,7 +19,7 @@ spec:
         dcjewelry.io/workload: private
       containers:
         - name: migrate
-          image: ghcr.io/your-github-user/dcjewelry-backend:latest
+          image: ct8395459/dc-jewelry-backend:v1
           imagePullPolicy: IfNotPresent
           command: ["php", "artisan", "migrate", "--force"]
           envFrom:

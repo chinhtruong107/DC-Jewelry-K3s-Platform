@@ -1,0 +1,23 @@
+# Copy to domain-patch.yaml and replace every REPLACE_WITH_PRODUCTION_DOMAIN.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dcjewelry-backend-config
+  namespace: dcjewelry
+data:
+  APP_URL: https://REPLACE_WITH_PRODUCTION_DOMAIN
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dcjewelry
+  namespace: dcjewelry
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  tls:
+    - hosts:
+        - REPLACE_WITH_PRODUCTION_DOMAIN
+      secretName: dcjewelry-tls
+  rules:
+    - host: REPLACE_WITH_PRODUCTION_DOMAIN

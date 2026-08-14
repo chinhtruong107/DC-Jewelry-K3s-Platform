@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+images:
+  - name: ct8395459/dc-jewelry-backend
+    newName: ct8395459/dc-jewelry-backend
+    newTag: v1
+  - name: ct8395459/dc-jewelry-frontend
+    newName: ct8395459/dc-jewelry-frontend
+    newTag: v1

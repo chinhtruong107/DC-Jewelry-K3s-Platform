@@ -1,5 +1,7 @@
 # Local Kubernetes credentials
 k8s/base/secret.yaml
+k8s/overlays/aws-ip/configmap-patch.yaml
+k8s/overlays/aws-domain/domain-patch.yaml
 
 # Kustomize-generated or local override files
 k8s/overlays/**/kustomization.local.yaml

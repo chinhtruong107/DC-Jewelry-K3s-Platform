@@ -1,0 +1,8 @@
+# Copy to configmap-patch.yaml and set the current test Elastic IP locally.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dcjewelry-backend-config
+  namespace: dcjewelry
+data:
+  APP_URL: http://REPLACE_WITH_K3S_SERVER_EIP

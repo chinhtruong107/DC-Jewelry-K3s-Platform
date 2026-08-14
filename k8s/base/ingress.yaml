@@ -3,13 +3,10 @@ kind: Ingress
 metadata:
   name: dcjewelry
   namespace: dcjewelry
-  annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
 spec:
   ingressClassName: traefik
   rules:
-    - host: dcjewelry.example.com
-      http:
+    - http:
         paths:
           - path: /api
             pathType: Prefix
