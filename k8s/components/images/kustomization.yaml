@@ -3,7 +3,10 @@ kind: Component
 images:
   - name: ct8395459/dc-jewelry-backend
     newName: ct8395459/dc-jewelry-backend
-    newTag: v1
+    # scripts/deploy.sh replaces this with the immutable tag published by
+    # DCJewelry GitHub Actions, for example sha-0123abcd....
+    newTag: sha-unset
   - name: ct8395459/dc-jewelry-frontend
     newName: ct8395459/dc-jewelry-frontend
-    newTag: v1
+    # Backend and frontend can be promoted independently when necessary.
+    newTag: sha-unset

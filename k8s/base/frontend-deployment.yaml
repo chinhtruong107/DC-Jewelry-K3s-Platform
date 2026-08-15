@@ -18,11 +18,12 @@ spec:
         app.kubernetes.io/name: dcjewelry-frontend
         app.kubernetes.io/part-of: dcjewelry
     spec:
+      serviceAccountName: dcjewelry-workload
       nodeSelector:
         dcjewelry.io/workload: private
       containers:
         - name: frontend
-          image: ct8395459/dc-jewelry-frontend:v1
+          image: ct8395459/dc-jewelry-frontend:sha-unset
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

@@ -31,31 +31,72 @@ Kubernetes manifests for deploying the DCJewelry Next.js storefront and Laravel 
 
 ## Deploy
 
+`DCJewelry` is the release repository. Its GitHub Actions workflow tests,
+lints and builds `main`, sends its CI Telegram notification, then publishes
+these immutable Docker Hub tags:
+
+```text
+ct8395459/dc-jewelry-backend:sha-<commit>
+ct8395459/dc-jewelry-frontend:sha-<commit>
+```
+
+The same workflow SSHes to the Control Node and invokes this repository's
+`scripts/deploy.sh`. The script writes the supplied backend and frontend tags
+into the shared Kustomize image component, applies the chosen overlay, runs the
+separate migration Job, waits for the Job, and verifies both rollouts. The
+workflow owns the final deploy Telegram notification.
+
 Run from the Control Node after configuring `kubectl` access to K3s:
 
 ```bash
-# Test through the Elastic IP
-kubectl apply -k k8s/overlays/aws-ip
+# Test through the Elastic IP. The tags must be the tags published by DCJewelry.
+BACKEND_IMAGE_TAG=sha-<commit> FRONTEND_IMAGE_TAG=sha-<commit> \
+  bash scripts/deploy.sh aws-ip
 
 # Or deploy the HTTPS production domain
-# kubectl apply -k k8s/overlays/aws-domain
-kubectl -n dcjewelry get pods,svc,ingress
-kubectl -n dcjewelry rollout status deployment/dcjewelry-backend
-kubectl -n dcjewelry rollout status deployment/dcjewelry-frontend
+# BACKEND_IMAGE_TAG=sha-<commit> FRONTEND_IMAGE_TAG=sha-<commit> \
+#   bash scripts/deploy.sh aws-domain
 ```
 
-The migration Job is intentionally separate. Run it once per release only after the backend image is available:
+The migration Job remains intentionally separate from application Pods. For a
+manual diagnosis, Kustomize supports all three release surfaces:
 
 ```bash
-kubectl apply -k k8s/jobs/migration
-kubectl -n dcjewelry logs -f job/dcjewelry-migrate
+kubectl kustomize k8s/overlays/aws-ip
+kubectl kustomize k8s/overlays/aws-domain
+kubectl kustomize k8s/jobs/migration
 ```
 
-To run it again, delete the completed Job first, then apply it again:
+`deploy.sh` removes only the previous completed migration Job before applying
+the new one; it does not delete deployments, local URL patches, or secrets.
+
+## Private Docker Hub images
+
+For public Docker Hub repositories, no extra manifest configuration is needed.
+If the images are private, create the pull secret directly on the Control Node.
+Do not put a Docker Hub token, password, or generated `.dockerconfigjson` in
+Git:
 
 ```bash
-kubectl -n dcjewelry delete job dcjewelry-migrate
+kubectl -n dcjewelry create secret docker-registry dcjewelry-dockerhub \
+  --docker-server=https://index.docker.io/v1/ \
+  --docker-username='<dockerhub-user>' \
+  --docker-password='<dockerhub-access-token>'
 ```
+
+Then opt the selected application overlay into the tracked, secret-free
+component by adding this entry under `components:` in either
+`k8s/overlays/aws-ip/kustomization.yaml` or
+`k8s/overlays/aws-domain/kustomization.yaml`:
+
+```yaml
+- ../../components/private-registry
+```
+
+That component adds `imagePullSecrets: [{name: dcjewelry-dockerhub}]` only to
+the dedicated `dcjewelry-workload` ServiceAccount. Both Deployments and the
+migration Job use that account, so the migration is covered after the app
+overlay is applied. Never commit the secret itself.
 
 ## Notes
 
@@ -63,4 +104,4 @@ kubectl -n dcjewelry delete job dcjewelry-migrate
 - `NEXT_PUBLIC_API_URL=/api` keeps browser API calls on the same domain.
 - HPA requires Metrics Server. K3s commonly includes it; confirm with `kubectl top nodes` before expecting scaling.
 - This repository contains no real credentials. `k8s/base/secret.yaml` is ignored by Git.
-- Application images are pinned to `ct8395459/dc-jewelry-backend:v1` and `ct8395459/dc-jewelry-frontend:v1`; no manifest uses `latest`.
+- Image names are centralized in `k8s/components/images`; deployment is rejected unless both tags match `sha-<lowercase-commit>`. No manifest or deploy path uses `latest`.

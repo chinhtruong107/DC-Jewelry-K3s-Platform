@@ -15,11 +15,12 @@ spec:
         app.kubernetes.io/name: dcjewelry-migrate
     spec:
       restartPolicy: OnFailure
+      serviceAccountName: dcjewelry-workload
       nodeSelector:
         dcjewelry.io/workload: private
       containers:
         - name: migrate
-          image: ct8395459/dc-jewelry-backend:v1
+          image: ct8395459/dc-jewelry-backend:sha-unset
           imagePullPolicy: IfNotPresent
           command: ["php", "artisan", "migrate", "--force"]
           envFrom:
