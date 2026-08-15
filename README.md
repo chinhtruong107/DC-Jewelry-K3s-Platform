@@ -41,10 +41,12 @@ ct8395459/dc-jewelry-frontend:sha-<commit>
 ```
 
 The same workflow SSHes to the Control Node and invokes this repository's
-`scripts/deploy.sh`. The script writes the supplied backend and frontend tags
-into the shared Kustomize image component, applies the chosen overlay, runs the
-separate migration Job, waits for the Job, and verifies both rollouts. The
-workflow owns the final deploy Telegram notification.
+`scripts/deploy.sh`. The script temporarily writes the supplied backend and
+frontend tags into the shared Kustomize image component, applies the chosen
+overlay, runs the separate migration Job, and verifies both rollouts. An exit
+trap restores that tracked manifest on both success and failure, keeping the
+Platform checkout clean for later Ansible Git updates. The workflow owns the
+final deploy Telegram notification.
 
 Run from the Control Node after configuring `kubectl` access to K3s:
 
@@ -67,8 +69,11 @@ kubectl kustomize k8s/overlays/aws-domain
 kubectl kustomize k8s/jobs/migration
 ```
 
-`deploy.sh` removes only the previous completed migration Job before applying
-the new one; it does not delete deployments, local URL patches, or secrets.
+`deploy.sh` refuses to start if the tracked image component is already locally
+modified. It removes only the previous migration Job before applying the new
+one, and its temporary release-tag change is restored after the migration and
+rollout checks finish; it does not delete deployments, local URL patches, or
+secrets.
 
 ## Private Docker Hub images
 
