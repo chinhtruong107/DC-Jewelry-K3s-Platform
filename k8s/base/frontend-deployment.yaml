@@ -21,6 +21,13 @@ spec:
       serviceAccountName: dcjewelry-workload
       nodeSelector:
         dcjewelry.io/workload: private
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: dcjewelry-frontend
       containers:
         - name: frontend
           image: ct8395459/dc-jewelry-frontend:sha-unset
