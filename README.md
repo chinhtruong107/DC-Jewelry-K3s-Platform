@@ -1,17 +1,25 @@
 # DCJewelry K3s Platform
 
-Kubernetes manifests for deploying the DCJewelry Next.js storefront and Laravel API on the AWS K3s topology:
+Kubernetes manifests for deploying the DCJewelry Next.js storefront and Laravel API on an AWS K3s cluster with one public K3s Server and exactly two private worker nodes:
 
-`Internet -> Traefik on K3s Server -> frontend/backend pods on private workers -> private RDS MySQL`
+`Internet -> Traefik on K3s Server -> frontend/backend pods spread across 2 private workers -> private RDS MySQL`
+
+The K3s Server provides the control plane and Traefik entry point. Application
+workloads and the database migration Job run only on the two private workers.
 
 ## Before deploying
 
-1. Install K3s on the public server and join the private worker nodes as agents.
-2. On every private worker, add the workload label (replace the node names):
+1. Install K3s on the public server and join exactly two private worker nodes as agents.
+2. Label both private workers for DCJewelry workloads (replace the node names):
 
    ```bash
-   kubectl label node <worker-node> dcjewelry.io/workload=private
+   kubectl label node <worker-1> dcjewelry.io/workload=private
+   kubectl label node <worker-2> dcjewelry.io/workload=private
+   kubectl get nodes -L dcjewelry.io/workload
    ```
+
+   Do not apply this label to the public K3s Server. The final command should
+   show `private` for both workers.
 
 3. Create the namespace, then copy the secret template, fill in real values locally, and apply it. Do **not** commit it.
 
@@ -75,6 +83,22 @@ one, and its temporary release-tag change is restored after the migration and
 rollout checks finish; it does not delete deployments, local URL patches, or
 secrets.
 
+## Two-worker scheduling
+
+Both the backend and frontend Deployments start with two replicas. Their Pods
+are selected for private workers and use a hostname topology spread constraint:
+`maxSkew: 1` with `whenUnsatisfiable: DoNotSchedule`. Kubernetes therefore
+keeps each application's replicas as evenly distributed as possible across the
+two workers and will not place a Pod in a way that violates that balance.
+
+The HPA can raise a Deployment above two replicas when capacity permits; extra
+Pods are still balanced across the same two workers. Check actual placement
+after each release:
+
+```bash
+kubectl -n dcjewelry get pods -o wide
+```
+
 ## Private Docker Hub images
 
 For public Docker Hub repositories, no extra manifest configuration is needed.
@@ -107,6 +131,6 @@ overlay is applied. Never commit the secret itself.
 
 - The IP overlay accepts traffic without an Ingress host and exposes HTTP only. The domain overlay uses the bundled K3s Traefik controller, routes `/api` to Laravel and all other paths to Next.js, and expects a TLS Secret named `dcjewelry-tls`.
 - `NEXT_PUBLIC_API_URL=/api` keeps browser API calls on the same domain.
-- HPA requires Metrics Server. K3s commonly includes it; confirm with `kubectl top nodes` before expecting scaling.
+- HPA requires Metrics Server. K3s commonly includes it; confirm with `kubectl top nodes` before expecting scaling and ensure the two workers have capacity for any additional replicas.
 - This repository contains no real credentials. `k8s/base/secret.yaml` is ignored by Git.
 - Image names are centralized in `k8s/components/images`; deployment is rejected unless both tags match `sha-<lowercase-commit>`. No manifest or deploy path uses `latest`.
