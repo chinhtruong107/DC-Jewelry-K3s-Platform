@@ -50,7 +50,7 @@ awk -v backend="$BACKEND_IMAGE_TAG" -v frontend="$FRONTEND_IMAGE_TAG" '
   /^[[:space:]]+newTag:/ && target == "backend" { sub(/newTag:.*/, "newTag: " backend); backend_count++; target="" }
   /^[[:space:]]+newTag:/ && target == "frontend" { sub(/newTag:.*/, "newTag: " frontend); frontend_count++; target="" }
   { print }
-' END { exit backend_count == 1 && frontend_count == 1 ? 0 : 1 }
+    END { exit backend_count == 1 && frontend_count == 1 ? 0 : 1 }
 ' "$IMAGE_COMPONENT" > "$TEMP_IMAGE_COMPONENT"
 mv "$TEMP_IMAGE_COMPONENT" "$IMAGE_COMPONENT"
 TEMP_IMAGE_COMPONENT=""
