@@ -99,6 +99,82 @@ after each release:
 kubectl -n dcjewelry get pods -o wide
 ```
 
+## Prometheus and Grafana monitoring
+
+The optional `k8s/monitoring` package runs exactly one Prometheus Pod and one
+Grafana Pod on the private workers. It is deliberately separate from
+`scripts/deploy.sh`, so an application release does not create, upgrade, or
+remove the monitoring stack.
+
+Prometheus collects its own metrics, K3s API Server metrics, kubelet node
+metrics, cAdvisor container metrics, and Pods explicitly annotated with
+`prometheus.io/scrape: "true"`. Grafana is provisioned with Prometheus as its
+default data source. This cluster monitoring complements PMM; PMM remains
+responsible for RDS/MySQL monitoring.
+
+Both Services are `ClusterIP`. There is no monitoring Ingress, NodePort, or
+LoadBalancer, so neither web UI is exposed to the Internet. The default storage
+uses the K3s `local-path` StorageClass:
+
+- Prometheus: 10 GiB PVC, up to 8 GB of metrics, 7-day retention.
+- Grafana: 5 GiB PVC for its users, settings, and dashboards.
+
+Verify the private-worker label and StorageClass, then deploy from the Control
+Node. Create the Grafana password without writing it to Git or a command-line
+argument stored in the repository:
+
+```bash
+kubectl get nodes -L dcjewelry.io/workload
+kubectl get storageclass local-path
+
+kubectl apply -f k8s/monitoring/namespace.yaml
+read -rsp "Grafana admin password: " GRAFANA_ADMIN_PASSWORD && echo
+kubectl -n monitoring create secret generic grafana-admin \
+  --from-literal=admin-user=admin \
+  --from-literal=admin-password="$GRAFANA_ADMIN_PASSWORD" \
+  --dry-run=client -o yaml | kubectl apply -f -
+unset GRAFANA_ADMIN_PASSWORD
+
+kubectl apply -k k8s/monitoring
+kubectl -n monitoring rollout status deployment/prometheus --timeout=5m
+kubectl -n monitoring rollout status deployment/grafana --timeout=5m
+kubectl -n monitoring get pods,services,pvc -o wide
+```
+
+The committed manifests use `prom/prometheus:v3.14.0` and
+`grafana/grafana:13.2.0`; upgrades are explicit repository changes rather than
+an untracked pull of `latest`.
+
+### Access Grafana through the Control Node
+
+Keep this command running in an SSH session on the Control Node. Port-forwarding
+the Service selects its Grafana Pod while keeping a stable command if the Pod is
+recreated:
+
+```bash
+kubectl -n monitoring port-forward service/grafana 3000:3000 \
+  --address=127.0.0.1
+```
+
+In a separate terminal on the user's workstation, create the SSH tunnel to the
+Control Node (replace its public address):
+
+```bash
+ssh -N -L 3000:127.0.0.1:3000 ubuntu@<CONTROL_NODE_PUBLIC_IP>
+```
+
+Open `http://127.0.0.1:3000` and sign in with user `admin` and the password used
+when creating `grafana-admin`. Both commands intentionally stay in the
+foreground; `Ctrl+C` closes the access path without changing the Kubernetes
+workloads.
+
+Prometheus normally needs no direct user access because Grafana queries it
+inside the cluster. For target diagnosis, use the same two-stage flow with
+`service/prometheus`, port `9090`, and open `http://127.0.0.1:9090/targets`.
+Application-specific Laravel or Next.js metrics will appear only after that
+application exposes a Prometheus endpoint and its Pod template receives the
+matching scrape annotations.
+
 ## Private Docker Hub images
 
 For public Docker Hub repositories, no extra manifest configuration is needed.
